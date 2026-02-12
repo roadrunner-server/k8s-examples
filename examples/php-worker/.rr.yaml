@@ -1,0 +1,28 @@
+version: "3"
+
+rpc:
+  listen: tcp://127.0.0.1:6001
+
+server:
+  command: "php /app/worker.php"
+  relay: pipes
+
+http:
+  address: 0.0.0.0:8080
+
+logs:
+  mode: production
+  level: info
+  encoding: json
+  output: ["stdout"]
+  err_output: ["stderr"]
+
+status:
+  address: 0.0.0.0:2114
+
+metrics:
+  address: 0.0.0.0:2112
+
+endure:
+  log_level: error
+  grace_period: 30s

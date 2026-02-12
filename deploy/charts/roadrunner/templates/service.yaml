@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "roadrunner.fullname" . }}
+  labels:
+    {{- include "roadrunner.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "roadrunner.selectorLabels" . | nindent 4 }}
+  ports:
+    {{- if and .Values.ports.http.enabled .Values.ports.http.service }}
+    - name: http
+      protocol: {{ .Values.ports.http.protocol }}
+      port: {{ .Values.ports.http.servicePort }}
+      targetPort: http
+    {{- end }}
+    {{- if and .Values.ports.grpc.enabled .Values.ports.grpc.service }}
+    - name: grpc
+      protocol: {{ .Values.ports.grpc.protocol }}
+      port: {{ .Values.ports.grpc.servicePort }}
+      targetPort: grpc
+    {{- end }}
+    {{- if and .Values.ports.metrics.enabled .Values.ports.metrics.service }}
+    - name: metrics
+      protocol: {{ .Values.ports.metrics.protocol }}
+      port: {{ .Values.ports.metrics.servicePort }}
+      targetPort: metrics
+    {{- end }}
+    {{- if and .Values.ports.status.enabled .Values.ports.status.service }}
+    - name: status
+      protocol: {{ .Values.ports.status.protocol }}
+      port: {{ .Values.ports.status.servicePort }}
+      targetPort: status
+    {{- end }}
+    {{- if and .Values.ports.rpc.enabled .Values.ports.rpc.service }}
+    - name: rpc
+      protocol: {{ .Values.ports.rpc.protocol }}
+      port: {{ .Values.ports.rpc.servicePort }}
+      targetPort: rpc
+    {{- end }}

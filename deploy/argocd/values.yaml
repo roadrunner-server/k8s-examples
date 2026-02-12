@@ -1,0 +1,101 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/roadrunner-server/rr-php-worker-example
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+ports:
+  http:
+    enabled: true
+    service: true
+    containerPort: 8080
+    servicePort: 80
+    protocol: TCP
+  metrics:
+    enabled: true
+    service: true
+    containerPort: 2112
+    servicePort: 2112
+    protocol: TCP
+  status:
+    enabled: true
+    service: false
+    containerPort: 2114
+    servicePort: 2114
+    protocol: TCP
+  rpc:
+    enabled: false
+    service: false
+    containerPort: 6001
+    servicePort: 6001
+    protocol: TCP
+  grpc:
+    enabled: false
+    service: false
+    containerPort: 9001
+    servicePort: 9001
+    protocol: TCP
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+gateway:
+  enabled: true
+  create: true
+  className: cilium
+  listeners:
+    http:
+      enabled: true
+      hostname: roadrunner.home.arpa
+    https:
+      enabled: false
+  route:
+    enabled: true
+    hostnames:
+      - roadrunner.home.arpa
+    pathPrefix: /
+
+ingress:
+  enabled: false
+
+monitoring:
+  serviceMonitor:
+    enabled: false
+
+roadrunner:
+  config: |
+    version: "3"
+
+    rpc:
+      listen: tcp://127.0.0.1:{{ .Values.ports.rpc.containerPort }}
+
+    server:
+      # Worker command used by examples/php-worker image.
+      command: "php /app/worker.php"
+      relay: pipes
+
+    http:
+      address: 0.0.0.0:{{ .Values.ports.http.containerPort }}
+
+    logs:
+      mode: production
+      level: info
+      encoding: json
+      output: ["stdout"]
+      err_output: ["stderr"]
+
+    status:
+      address: 0.0.0.0:{{ .Values.ports.status.containerPort }}
+
+    metrics:
+      address: 0.0.0.0:{{ .Values.ports.metrics.containerPort }}
+
+    endure:
+      log_level: error
+      grace_period: {{ .Values.endure.gracePeriod }}

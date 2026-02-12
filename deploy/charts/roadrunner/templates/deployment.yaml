@@ -1,0 +1,145 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "roadrunner.fullname" . }}
+  labels:
+    {{- include "roadrunner.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.hpa.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "roadrunner.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "roadrunner.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- if or (and (not .Values.roadrunner.existingConfigMap) .Values.roadrunner.config) .Values.podAnnotations }}
+      annotations:
+        {{- if and (not .Values.roadrunner.existingConfigMap) .Values.roadrunner.config }}
+        checksum/rr-config: {{ tpl .Values.roadrunner.config . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "roadrunner.serviceAccountName" . }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      containers:
+        - name: roadrunner
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if or .Values.ports.http.enabled .Values.ports.grpc.enabled .Values.ports.metrics.enabled .Values.ports.status.enabled .Values.ports.rpc.enabled }}
+          ports:
+            {{- if .Values.ports.http.enabled }}
+            - name: http
+              containerPort: {{ .Values.ports.http.containerPort }}
+              protocol: {{ .Values.ports.http.protocol }}
+            {{- end }}
+            {{- if .Values.ports.grpc.enabled }}
+            - name: grpc
+              containerPort: {{ .Values.ports.grpc.containerPort }}
+              protocol: {{ .Values.ports.grpc.protocol }}
+            {{- end }}
+            {{- if .Values.ports.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.ports.metrics.containerPort }}
+              protocol: {{ .Values.ports.metrics.protocol }}
+            {{- end }}
+            {{- if .Values.ports.status.enabled }}
+            - name: status
+              containerPort: {{ .Values.ports.status.containerPort }}
+              protocol: {{ .Values.ports.status.protocol }}
+            {{- end }}
+            {{- if .Values.ports.rpc.enabled }}
+            - name: rpc
+              containerPort: {{ .Values.ports.rpc.containerPort }}
+              protocol: {{ .Values.ports.rpc.protocol }}
+            {{- end }}
+          {{- end }}
+          {{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path | quote }}
+              port: {{ .Values.probes.readiness.port }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            successThreshold: {{ .Values.probes.readiness.successThreshold }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          {{- end }}
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path | quote }}
+              port: {{ .Values.probes.liveness.port }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            successThreshold: {{ .Values.probes.liveness.successThreshold }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          {{- end }}
+          volumeMounts:
+            - name: rr-config
+              mountPath: /etc/rr
+              readOnly: true
+          {{- with .Values.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: rr-config
+          configMap:
+            name: {{ include "roadrunner.configMapName" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

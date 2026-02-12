@@ -1,0 +1,10 @@
+apiVersion: v2
+name: roadrunner
+description: Deploy RoadRunner with Kubernetes-safe defaults and Argo CD-friendly values.
+type: application
+version: 0.1.0
+appVersion: "2025.1"
+kubeVersion: ">=1.26.0-0"
+home: https://roadrunner.dev
+sources:
+  - https://github.com/roadrunner-server/roadrunner

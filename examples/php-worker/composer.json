@@ -1,0 +1,14 @@
+{
+  "name": "roadrunner-server/rr-php-worker-example",
+  "description": "Minimal RoadRunner PHP worker example for Kubernetes and ArgoCD",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "php": "^8.4",
+    "spiral/roadrunner-http": "^3.6",
+    "nyholm/psr7": "^1.8"
+  },
+  "config": {
+    "sort-packages": true
+  }
+}

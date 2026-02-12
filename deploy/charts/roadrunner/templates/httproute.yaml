@@ -1,0 +1,40 @@
+{{- if and .Values.gateway.enabled .Values.gateway.route.enabled }}
+{{- if not .Values.ports.http.service -}}
+{{- fail "gateway.route.enabled=true requires ports.http.service=true because HTTPRoute backendRefs target the chart Service" -}}
+{{- end }}
+{{- $routeName := default (include "roadrunner.fullname" .) .Values.gateway.route.name -}}
+{{- $gatewayName := default (include "roadrunner.fullname" .) .Values.gateway.name -}}
+{{- $gatewayNamespace := default .Release.Namespace .Values.gateway.namespace -}}
+{{- if and (not .Values.gateway.create) (eq (len .Values.gateway.route.parentRefs) 0) -}}
+{{- fail "gateway.create=false requires gateway.route.parentRefs to reference an existing Gateway" -}}
+{{- end }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $routeName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "roadrunner.labels" . | nindent 4 }}
+  {{- with .Values.gateway.route.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- if gt (len .Values.gateway.route.parentRefs) 0 }}
+      {{- toYaml .Values.gateway.route.parentRefs | nindent 4 }}
+    {{- else }}
+    - name: {{ $gatewayName }}
+      namespace: {{ $gatewayNamespace }}
+    {{- end }}
+  hostnames:
+    {{- toYaml .Values.gateway.route.hostnames | nindent 4 }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ .Values.gateway.route.pathPrefix | quote }}
+      backendRefs:
+        - name: {{ include "roadrunner.fullname" . }}
+          port: {{ .Values.ports.http.servicePort }}
+{{- end }}

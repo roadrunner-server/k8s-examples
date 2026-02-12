@@ -1,0 +1,46 @@
+{{- if and .Values.gateway.enabled .Values.gateway.create }}
+{{- $gatewayName := default (include "roadrunner.fullname" .) .Values.gateway.name -}}
+{{- $gatewayNamespace := default .Release.Namespace .Values.gateway.namespace -}}
+{{- if not (or .Values.gateway.listeners.http.enabled .Values.gateway.listeners.https.enabled) -}}
+{{- fail "gateway.create=true requires at least one enabled listener (gateway.listeners.http.enabled or gateway.listeners.https.enabled)" -}}
+{{- end }}
+{{- if and .Values.gateway.listeners.https.enabled (eq .Values.gateway.listeners.https.tls.mode "Terminate") (eq (len .Values.gateway.listeners.https.tls.certificateRefs) 0) -}}
+{{- fail "gateway.listeners.https.enabled=true with tls.mode=Terminate requires gateway.listeners.https.tls.certificateRefs" -}}
+{{- end }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $gatewayName }}
+  namespace: {{ $gatewayNamespace }}
+  labels:
+    {{- include "roadrunner.labels" . | nindent 4 }}
+  {{- with .Values.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  gatewayClassName: {{ .Values.gateway.className }}
+  listeners:
+    {{- if .Values.gateway.listeners.http.enabled }}
+    - name: {{ .Values.gateway.listeners.http.name }}
+      protocol: HTTP
+      port: {{ .Values.gateway.listeners.http.port }}
+      hostname: {{ .Values.gateway.listeners.http.hostname | quote }}
+      allowedRoutes:
+        namespaces:
+          from: {{ .Values.gateway.listeners.http.allowedRoutesNamespacesFrom }}
+    {{- end }}
+    {{- if .Values.gateway.listeners.https.enabled }}
+    - name: {{ .Values.gateway.listeners.https.name }}
+      protocol: HTTPS
+      port: {{ .Values.gateway.listeners.https.port }}
+      hostname: {{ .Values.gateway.listeners.https.hostname | quote }}
+      allowedRoutes:
+        namespaces:
+          from: {{ .Values.gateway.listeners.https.allowedRoutesNamespacesFrom }}
+      tls:
+        mode: {{ .Values.gateway.listeners.https.tls.mode }}
+        certificateRefs:
+          {{- toYaml .Values.gateway.listeners.https.tls.certificateRefs | nindent 10 }}
+    {{- end }}
+{{- end }}
