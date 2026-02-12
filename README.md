@@ -65,7 +65,7 @@ helm upgrade --install roadrunner ./deploy/charts/roadrunner -n roadrunner --cre
 ### Argo CD sync
 
 1. Edit `deploy/argocd/application.yaml` (`repoURL`, `targetRevision`) if needed.
-2. Edit `deploy/argocd/values.yaml` (image, worker command, gateway hostnames/class, metrics settings).
+2. Edit `deploy/argocd/values.yaml` (image, worker command, exposure mode, metrics settings).
 3. Apply:
 
 ```bash
@@ -75,8 +75,32 @@ kubectl apply -f deploy/argocd/application.yaml
 The Argo CD example values are preconfigured for:
 
 - image: `ghcr.io/roadrunner-server/rr-php-worker-example:latest`
-- Gateway hostname: `roadrunner.home.arpa`
-- GatewayClass: `cilium`
+- Service type: `LoadBalancer` (MetalLB-friendly)
+- `gateway.enabled: false`
+- `ingress.enabled: false`
+
+### MetalLB profile (no Gateway controller)
+
+If your cluster uses MetalLB and does not run a Gateway API controller, use:
+
+```yaml
+service:
+  type: LoadBalancer
+
+gateway:
+  enabled: false
+
+ingress:
+  enabled: false
+```
+
+Then sync ArgoCD and check:
+
+```bash
+kubectl -n roadrunner get svc roadrunner -w
+curl -sS http://<external-ip>/
+curl -sS http://<external-ip>/health
+```
 
 ### Probe and metrics defaults
 
@@ -94,3 +118,9 @@ The chart mounts `/etc/rr/.rr.yaml` from a ConfigMap by default. This can overri
 - Default `GatewayClass` is `cilium`.
 - The chart renders `Gateway` and `HTTPRoute` by default.
 - Ingress remains available as fallback (`ingress.enabled=true` with `gateway.enabled=false`).
+
+### Troubleshooting
+
+- ArgoCD `Progressing` with health details `Waiting for controller` means Gateway resources are enabled but no Gateway controller is reconciling them.
+- `kubectl get gatewayclass` returning no resources indicates Gateway API objects will not become `Healthy` until a controller/GatewayClass is installed.
+- If ArgoCD still applies old values after local edits, ensure changes are committed and pushed to the revision ArgoCD tracks.

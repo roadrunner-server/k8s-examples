@@ -45,8 +45,11 @@ resources:
     cpu: 1000m
     memory: 512Mi
 
+service:
+  type: LoadBalancer
+
 gateway:
-  enabled: true
+  enabled: false
   create: true
   className: cilium
   listeners:
