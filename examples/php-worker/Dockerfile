@@ -7,7 +7,7 @@ RUN composer install --no-dev --prefer-dist --classmap-authoritative --no-intera
 
 FROM ghcr.io/roadrunner-server/roadrunner:2025.1 AS rr
 
-FROM php:8.4-cli-alpine
+FROM php:8.5-cli-alpine
 WORKDIR /app
 
 RUN apk add --no-cache ca-certificates \
