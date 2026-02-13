@@ -2,6 +2,9 @@
 
 Kubernetes deployment examples for RoadRunner, including Helm chart templates and Argo CD manifests.
 
+<img width="3234" height="1428" alt="image" src="https://github.com/user-attachments/assets/ca17a0a2-998e-4018-b99f-cd5c554afbe4" />
+
+
 ## Included Assets
 
 - `deploy/charts/roadrunner`: Helm chart for RoadRunner deployment.
